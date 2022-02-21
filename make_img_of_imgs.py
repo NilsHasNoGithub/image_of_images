@@ -79,8 +79,6 @@ def load_and_resize_target_img(target_img_path, width) -> np.ndarray:
 
 
 def squared_error(img1, img2):
-    # img1 = downscale_img(img1, 0.1)
-    # img2 = downscale_img(img2, 0.1)
     return np.mean((img1 - img2) ** 2)
 
 def fill_target_img(target_img: np.ndarray, imgs: List[np.ndarray], sub_img_width, sub_img_height, pop_img=True) -> np.ndarray:
