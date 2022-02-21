@@ -1,4 +1,4 @@
-# Image of_images
+# Image of images
 so-manieth repository which contains a tool for generating an image composed of multiple other images
 
 
