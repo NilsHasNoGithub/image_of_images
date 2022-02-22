@@ -7,8 +7,8 @@ So-manieth repository which contains a tool for generating an image composed of 
 Download one of the released binaries and execute it:
 | Platform | Download |
 |--------|-------|
-| Linux   | [image_of_images_gui](https://github.com/NilsHasNoGithub/image_of_images/releases/download/v0.2.0/image_of_images_gui)  |
-| Windows | [image_of_images_gui.exe](https://github.com/NilsHasNoGithub/image_of_images/releases/download/v0.2.0/image_of_images_gui.exe)  |
+| Linux   | [image_of_images_gui](https://github.com/NilsHasNoGithub/image_of_images/releases/download/v0.3.0/image_of_images_gui)  |
+| Windows | [image_of_images_gui.exe](https://github.com/NilsHasNoGithub/image_of_images/releases/download/v0.3.0/image_of_images_gui.exe)  |
 <!-- | Apple (failed) | Build failed -->
 
 ### Or compile & run using cargo:
