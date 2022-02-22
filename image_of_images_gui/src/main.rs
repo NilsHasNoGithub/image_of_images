@@ -69,9 +69,9 @@ impl ImgOfImgsGui {
 
         thread::spawn(move || {
             let opt_path = match dialog_type {
-                FileDialogType::TargetImgPath => nfd::open_dialog(Some(&IMAGE_EXTENSIONS.join(",")), Some("."), nfd::DialogType::SingleFile),
+                FileDialogType::TargetImgPath => nfd::open_dialog(Some(&IMAGE_EXTENSIONS.join(",")), None, nfd::DialogType::SingleFile),
                 FileDialogType::InputFolderPath | FileDialogType::OutputFolderPath => {
-                    nfd::open_pick_folder(".".into())
+                    nfd::open_pick_folder(None)
                     // native_dialog::FileDialog::new()
                     //     .set_location(".")
                     //     .show_open_single_dir()
