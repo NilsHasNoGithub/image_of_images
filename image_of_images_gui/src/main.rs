@@ -69,20 +69,21 @@ impl ImgOfImgsGui {
 
         thread::spawn(move || {
             let opt_path = match dialog_type {
-                FileDialogType::TargetImgPath => nfd::open_dialog(Some(&IMAGE_EXTENSIONS.join(",")), None, nfd::DialogType::SingleFile),
+                FileDialogType::TargetImgPath => nfd::open_dialog(
+                    Some(&IMAGE_EXTENSIONS.join(",")),
+                    None,
+                    nfd::DialogType::SingleFile,
+                ),
                 FileDialogType::InputFolderPath | FileDialogType::OutputFolderPath => {
                     nfd::open_pick_folder(None)
-                    // native_dialog::FileDialog::new()
-                    //     .set_location(".")
-                    //     .show_open_single_dir()
                 }
             };
 
             match opt_path {
                 Ok(nfd::Response::Okay(path)) => {
-                        result_sender
-                            .send(dialog_type.make_result_event(path))
-                            .unwrap();
+                    result_sender
+                        .send(dialog_type.make_result_event(path))
+                        .unwrap();
                 }
                 Ok(nfd::Response::OkayMultiple(_)) => {
                     log::warn!("Received multiple files from dialog which should not be possible")
@@ -134,7 +135,7 @@ impl ImgOfImgsGui {
                 Event::ProcessFinished { success } => {
                     self.processing = false;
                     self.process_success = Some(success);
-                },
+                }
             }
         }
     }
@@ -189,7 +190,9 @@ impl ImgOfImgsGui {
                 }
             };
 
-            event_sender.send(Event::ProcessFinished{success}).unwrap();
+            event_sender
+                .send(Event::ProcessFinished { success })
+                .unwrap();
         });
 
         Ok(())
@@ -259,11 +262,9 @@ impl App for ImgOfImgsGui {
         // handle events
         self.handle_events();
 
-
         request_update_every(frame.clone(), Duration::from_millis(100));
 
         egui::CentralPanel::default().show(&ctx, |ui| {
-
             // ui.set_style(style);
             egui::Grid::new("Config")
                 // .min_col_width(200f32)
@@ -292,7 +293,10 @@ impl App for ImgOfImgsGui {
 
             if let Some(true) = self.process_success {
                 let full_result_path = std::fs::canonicalize(self.output_file());
-                if let Some(p) = full_result_path.ok().and_then(|p| p.to_str().map(|s| s.to_string())) {
+                if let Some(p) = full_result_path
+                    .ok()
+                    .and_then(|p| p.to_str().map(|s| s.to_string()))
+                {
                     ui.hyperlink_to("Click here to inspect last result", format!("file://{}", p));
                 }
             }
@@ -324,7 +328,7 @@ impl App for ImgOfImgsGui {
         }
 
         // light looks really bad for some reason
-        
+
         ctx.set_visuals(egui::Visuals::dark());
     }
 
