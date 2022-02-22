@@ -145,6 +145,8 @@ impl ImgOfImgsGui {
     }
 
     fn start_make_img_of_imgs(&self) -> anyhow::Result<()> {
+        std::fs::create_dir_all(&self.output_folder_path)?;
+
         let progress_sender = self.progress_sender.clone();
         let event_sender = self.event_sender.clone();
 
