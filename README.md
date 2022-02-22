@@ -1,10 +1,24 @@
 # Image of images
 so-manieth repository which contains a tool for generating an image composed of multiple other images
 
-
 ## How to use
+
+### Use the user interface
+Download one of the binaries and execute it:
+| Platform | Download |
+|--------|-------|
+| Linux   | [image_of_images_gui](http://nilsgolembiewski.nl:8060/public_files/image_of_images_gui)  |
+| Windows (not tested)  | [image_of_images_gui.exe](http://nilsgolembiewski.nl:8060/public_files/image_of_images_gui.exe)  |
+<!-- | Apple (failed) | Build failed -->
+
+Or compile & run using cargo:
 ```
-python make_img_of_imgs.py --in-folder <folder_with_images> --target-img <jpg_image_to_replicate> --out-dir <folder_to_store_results>
+cargo run -p image_of_images_gui --release
+```
+
+### Or use the cli
+```
+cargo run -p image_of_images_cli --release -- --in-folder <folder_with_images> --target-img <jpg_image_to_replicate> --out-dir <folder_to_store_results>
 ```
 
 ## Example
@@ -12,7 +26,7 @@ A logo composed of images from [Flickr8K](https://www.kaggle.com/adityajn105/fli
 
 Generated with:
 ```
-python make_img_of_imgs.py --input-dir data/archive --target-img resources/bch_logo_no_bg.jpg --output-dir resources --target-width 1000
+cargo run -p image_of_images_cli --release -- --input-dir data/archive --target-img resources/bch_logo_no_bg.jpg --output-dir resources
 ```
 
 The original logo:
