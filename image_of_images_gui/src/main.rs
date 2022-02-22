@@ -69,27 +69,26 @@ impl ImgOfImgsGui {
 
         thread::spawn(move || {
             let opt_path = match dialog_type {
-                FileDialogType::TargetImgPath => native_dialog::FileDialog::new()
-                    .add_filter("Image", &IMAGE_EXTENSIONS)
-                    .set_location(".")
-                    .show_open_single_file(),
+                FileDialogType::TargetImgPath => nfd::open_dialog(Some(&IMAGE_EXTENSIONS.join(",")), Some("."), nfd::DialogType::SingleFile),
                 FileDialogType::InputFolderPath | FileDialogType::OutputFolderPath => {
-                    native_dialog::FileDialog::new()
-                        .set_location(".")
-                        .show_open_single_dir()
+                    nfd::open_pick_folder(".".into())
+                    // native_dialog::FileDialog::new()
+                    //     .set_location(".")
+                    //     .show_open_single_dir()
                 }
             };
 
             match opt_path {
-                Ok(Some(path)) => {
-                    if let Some(s) = path.to_str() {
+                Ok(nfd::Response::Okay(path)) => {
                         result_sender
-                            .send(dialog_type.make_result_event(s.into()))
+                            .send(dialog_type.make_result_event(path))
                             .unwrap();
-                    }
+                }
+                Ok(nfd::Response::OkayMultiple(_)) => {
+                    log::warn!("Received multiple files from dialog which should not be possible")
                 }
                 Err(e) => {
-                    log::warn!("Error using file dialog: {:?}", e)
+                    log::warn!("Error using file dialog: {:?}", e);
                 }
                 _ => (),
             }
@@ -256,13 +255,16 @@ fn request_update_every(ctx: eframe::epi::Frame, interval: Duration) {
 }
 
 impl App for ImgOfImgsGui {
-    fn update(&mut self, ctx: &egui::CtxRef, frame: &eframe::epi::Frame) {
+    fn update(&mut self, ctx: &egui::Context, frame: &eframe::epi::Frame) {
         // handle events
         self.handle_events();
+
 
         request_update_every(frame.clone(), Duration::from_millis(100));
 
         egui::CentralPanel::default().show(&ctx, |ui| {
+
+            // ui.set_style(style);
             egui::Grid::new("Config")
                 // .min_col_width(200f32)
                 .max_col_width(500f32)
@@ -303,7 +305,7 @@ impl App for ImgOfImgsGui {
 
     fn setup(
         &mut self,
-        _ctx: &egui::CtxRef,
+        ctx: &egui::Context,
         _frame: &eframe::epi::Frame,
         storage: Option<&dyn eframe::epi::Storage>,
     ) {
@@ -320,6 +322,10 @@ impl App for ImgOfImgsGui {
                 .get_string("output_folder")
                 .unwrap_or(defaults.output_folder_path);
         }
+
+        // light looks really bad for some reason
+        
+        ctx.set_visuals(egui::Visuals::dark());
     }
 
     fn save(&mut self, storage: &mut dyn eframe::epi::Storage) {
