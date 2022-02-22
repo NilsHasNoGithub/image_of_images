@@ -1,7 +1,14 @@
-use std::{thread, time::Duration, path::{PathBuf, Path}};
+use std::{
+    path::{Path, PathBuf},
+    thread,
+    time::Duration,
+};
 
 use crossbeam::channel::{Receiver, Sender};
-use eframe::{epi::{App, Storage}, NativeOptions};
+use eframe::{
+    epi::{App, Storage},
+    NativeOptions,
+};
 use egui::{Response, TextBuffer};
 use image_of_images::{
     make_img_of_images, progress_channel, ProgressReceiver, ProgressSender, IMAGE_EXTENSIONS,
@@ -30,13 +37,13 @@ impl FileDialogType {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 enum Event {
     SetTargetImgPath(String),
     SetInputFolderPath(String),
     SetOutputFolderPath(String),
     SetProgressText(Option<String>),
-    ProcessFinished,
+    ProcessFinished { success: bool },
 }
 
 #[derive(Debug, Clone)]
@@ -48,6 +55,7 @@ struct ImgOfImgsGui {
     num_vertical_imgs: String,
     target_img_width: String,
     processing: bool,
+    process_success: Option<bool>,
     event_receiver: Receiver<Event>,
     event_sender: Sender<Event>,
     progress_text: Option<String>,
@@ -124,7 +132,10 @@ impl ImgOfImgsGui {
                 Event::SetInputFolderPath(s) => self.input_folder_path = s,
                 Event::SetOutputFolderPath(s) => self.output_folder_path = s,
                 Event::SetProgressText(s) => self.progress_text = s,
-                Event::ProcessFinished => self.processing = false,
+                Event::ProcessFinished { success } => {
+                    self.processing = false;
+                    self.process_success = Some(success);
+                },
             }
         }
     }
@@ -145,8 +156,6 @@ impl ImgOfImgsGui {
         let num_vertical_imgs = self.num_vertical_imgs.parse()?;
         let target_width = self.target_img_width.parse()?;
 
-        let out_file = self.output_file();
-
         thread::spawn(move || {
             let result = make_img_of_images(
                 target_img_path,
@@ -161,19 +170,27 @@ impl ImgOfImgsGui {
                 },
             );
 
-            match result {
-                Ok(_) => event_sender.send(Event::SetProgressText(Some(format!(
-                    "Finished creating image, which can be found here '{}'",
-                    out_file.to_str().unwrap_or_default(),
-                )))),
-                Err(e) => event_sender.send(Event::SetProgressText(Some(format!(
-                    "Failed creating image of images: {}",
-                    e
-                )))),
-            }
-            .unwrap();
+            let success = match result {
+                Ok(_) => {
+                    event_sender
+                        .send(Event::SetProgressText(Some(format!(
+                            "Finished creating image, which can be found in the results folder",
+                        ))))
+                        .unwrap();
+                    true
+                }
+                Err(e) => {
+                    event_sender
+                        .send(Event::SetProgressText(Some(format!(
+                            "Failed creating image of images: {}",
+                            e
+                        ))))
+                        .unwrap();
+                    false
+                }
+            };
 
-            event_sender.send(Event::ProcessFinished).unwrap();
+            event_sender.send(Event::ProcessFinished{success}).unwrap();
         });
 
         Ok(())
@@ -214,6 +231,7 @@ impl Default for ImgOfImgsGui {
             input_folder_path: Default::default(),
             output_folder_path: "results".into(),
             processing: false,
+            process_success: None,
             event_receiver,
             event_sender,
             progress_text: Default::default(),
@@ -241,7 +259,6 @@ impl App for ImgOfImgsGui {
     fn update(&mut self, ctx: &egui::CtxRef, frame: &eframe::epi::Frame) {
         // handle events
         self.handle_events();
-
 
         request_update_every(frame.clone(), Duration::from_millis(100));
 
@@ -271,6 +288,12 @@ impl App for ImgOfImgsGui {
                 ui.label(txt);
             }
 
+            if let Some(true) = self.process_success {
+                let full_result_path = std::fs::canonicalize(self.output_file());
+                if let Some(p) = full_result_path.ok().and_then(|p| p.to_str().map(|s| s.to_string())) {
+                    ui.hyperlink_to("Click here to inspect last result", format!("file://{}", p));
+                }
+            }
         });
     }
 
@@ -278,13 +301,24 @@ impl App for ImgOfImgsGui {
         "Image of Images"
     }
 
-    fn setup(&mut self, _ctx: &egui::CtxRef, _frame: &eframe::epi::Frame, storage: Option<&dyn eframe::epi::Storage>) {
+    fn setup(
+        &mut self,
+        _ctx: &egui::CtxRef,
+        _frame: &eframe::epi::Frame,
+        storage: Option<&dyn eframe::epi::Storage>,
+    ) {
         if let Some(storage) = storage {
             let defaults = Self::default();
 
-            self.target_img_path = storage.get_string("target_img").unwrap_or(defaults.target_img_path);
-            self.input_folder_path = storage.get_string("input_folder").unwrap_or(defaults.input_folder_path);
-            self.output_folder_path = storage.get_string("output_folder").unwrap_or(defaults.output_folder_path);
+            self.target_img_path = storage
+                .get_string("target_img")
+                .unwrap_or(defaults.target_img_path);
+            self.input_folder_path = storage
+                .get_string("input_folder")
+                .unwrap_or(defaults.input_folder_path);
+            self.output_folder_path = storage
+                .get_string("output_folder")
+                .unwrap_or(defaults.output_folder_path);
         }
     }
 
@@ -297,7 +331,6 @@ impl App for ImgOfImgsGui {
     fn auto_save_interval(&self) -> std::time::Duration {
         Duration::from_secs(1)
     }
-
 }
 
 fn main() {
