@@ -1,0 +1,19 @@
+[package]
+name = "image_of_images"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1.0.54"
+crossbeam = "0.8.1"
+dotenv = "0.15.0"
+env_logger = "0.9.0"
+glob = "0.3.0"
+image = "0.24.1"
+indicatif = "0.16.2"
+itertools = "0.10.3"
+log = "0.4.14"
+rand = "0.8.5"
+rayon = "1.5.1"

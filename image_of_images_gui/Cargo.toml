@@ -1,0 +1,19 @@
+[package]
+edition = "2021"
+name = "image_of_images_gui"
+version = "0.1.0"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1.0.55"
+crossbeam = "0.8.1"
+dirs = "4.0.0"
+dotenv = "0.15.0"
+eframe = {version = "0.16.0", features = ["persistence"]}
+egui = {version = "0.16.1", features = ["persistence"]}
+env_logger = "0.9.0"
+image_of_images = {path = "../image_of_images"}
+log = "0.4.14"
+native-dialog = "0.6.3"
+parking_lot = "0.12.0"

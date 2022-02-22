@@ -1,0 +1,6 @@
+[workspace]
+members = [
+    "image_of_images",
+    "image_of_images_cli",
+    "image_of_images_gui",
+]
