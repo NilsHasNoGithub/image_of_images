@@ -1,17 +1,17 @@
 # Image of images
-so-manieth repository which contains a tool for generating an image composed of multiple other images
+So-manieth repository which contains a tool for generating an image composed of multiple other images
 
 ## How to use
 
 ### Use the user interface
-Download one of the binaries and execute it:
+Download one of the released binaries and execute it:
 | Platform | Download |
 |--------|-------|
-| Linux   | [image_of_images_gui](https://github.com/NilsHasNoGithub/image_of_images/releases/download/v0.0.1/image_of_images_gui)  |
-| Windows (not tested)  | [image_of_images_gui.exe](https://github.com/NilsHasNoGithub/image_of_images/releases/download/v0.0.1/image_of_images_gui.exe)  |
+| Linux   | [image_of_images_gui](https://github.com/NilsHasNoGithub/image_of_images/releases/download/v0.2.0/image_of_images_gui)  |
+| Windows | [image_of_images_gui.exe](https://github.com/NilsHasNoGithub/image_of_images/releases/download/v0.2.0/image_of_images_gui.exe)  |
 <!-- | Apple (failed) | Build failed -->
 
-Or compile & run using cargo:
+### Or compile & run using cargo:
 ```
 cargo run -p image_of_images_gui --release
 ```
@@ -22,7 +22,7 @@ cargo run -p image_of_images_cli --release -- --in-folder <folder_with_images> -
 ```
 
 ## Example
-A logo composed of images from [Flickr8K](https://www.kaggle.com/adityajn105/flickr8k/activity) dataset.
+A logo composed of images from the [Flickr8K](https://www.kaggle.com/adityajn105/flickr8k/activity) dataset.
 
 Generated with:
 ```
