@@ -1,4 +1,4 @@
-use std::{collections::HashSet, path::Path};
+use std::{collections::HashSet, path::{Path, PathBuf}};
 
 use crossbeam::channel::SendError;
 use image::{
@@ -20,6 +20,19 @@ pub const IMAGE_EXTENSIONS: [&str; 3] = ["png", "jpg", "jpeg"];
 
 pub fn progress_channel() -> (ProgressSender, ProgressReceiver) {
     crossbeam::channel::unbounded()
+}
+
+pub fn find_free_filepath(dir: impl AsRef<Path>, base: &str, extension: &str) -> PathBuf {
+    let dir = dir.as_ref();
+    let mut result = dir.join(format!("{base}{extension}"));
+    let mut i: usize = 1;
+
+    while result.exists() {
+        result = dir.join(format!("{base}({i}){extension}"));
+        i += 1;
+    }
+
+    result
 }
 
 fn handle_progress_send_error(e: Result<(), SendError<(usize, usize, &'static str)>>) {
@@ -392,10 +405,10 @@ impl Default for MakeImgOfImsOpts {
 pub fn make_img_of_images(
     target_im_path: impl AsRef<Path>,
     input_dir: impl AsRef<Path>,
-    output_dir: impl AsRef<Path>,
+    output_file: impl AsRef<Path>,
     opts: MakeImgOfImsOpts,
 ) -> anyhow::Result<()> {
-    let output_dir = output_dir.as_ref();
+    let output_file = output_file.as_ref();
     let target_img = load_and_resize_target_img(target_im_path, opts.target_width)?;
 
     // let tgt_img_conf: ImageBuffer<Rgba<u16>, Vec<u16>> = target_img.convert();
@@ -423,7 +436,7 @@ pub fn make_img_of_images(
     )?;
 
     let result: ImageBuffer<Rgba<u16>, Vec<u16>> = result.convert();
-    result.save(output_dir.join("result.png"))?;
+    result.save(output_file)?;
 
     Ok(())
 }

@@ -11,7 +11,7 @@ use eframe::{
 };
 use egui::{Response, TextBuffer};
 use image_of_images::{
-    make_img_of_images, progress_channel, ProgressReceiver, ProgressSender, IMAGE_EXTENSIONS,
+    make_img_of_images, progress_channel, ProgressReceiver, ProgressSender, IMAGE_EXTENSIONS, find_free_filepath,
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -43,7 +43,7 @@ enum Event {
     SetInputFolderPath(String),
     SetOutputFolderPath(String),
     SetProgressText(Option<String>),
-    ProcessFinished { success: bool },
+    ProcessFinished { process_result: Option<PathBuf> },
 }
 
 #[derive(Debug, Clone)]
@@ -55,7 +55,7 @@ struct ImgOfImgsGui {
     num_vertical_imgs: String,
     target_img_width: String,
     processing: bool,
-    process_success: Option<bool>,
+    process_result: Option<PathBuf>,
     event_receiver: Receiver<Event>,
     event_sender: Sender<Event>,
     progress_text: Option<String>,
@@ -132,9 +132,9 @@ impl ImgOfImgsGui {
                 Event::SetInputFolderPath(s) => self.input_folder_path = s,
                 Event::SetOutputFolderPath(s) => self.output_folder_path = s,
                 Event::SetProgressText(s) => self.progress_text = s,
-                Event::ProcessFinished { success } => {
+                Event::ProcessFinished { process_result: output_file } => {
                     self.processing = false;
-                    self.process_success = Some(success);
+                    self.process_result = output_file;
                 }
             }
         }
@@ -145,7 +145,7 @@ impl ImgOfImgsGui {
     }
 
     fn start_make_img_of_imgs(&self) -> anyhow::Result<()> {
-        std::fs::create_dir_all(&self.output_folder_path)?;
+        
 
         let progress_sender = self.progress_sender.clone();
         let event_sender = self.event_sender.clone();
@@ -159,18 +159,27 @@ impl ImgOfImgsGui {
         let target_width = self.target_img_width.parse()?;
 
         thread::spawn(move || {
-            let result = make_img_of_images(
-                target_img_path,
-                input_folder_path,
-                &output_folder_path,
-                image_of_images::MakeImgOfImsOpts {
-                    progress_sender: Some(progress_sender),
-                    num_horizontal_imgs,
-                    num_vertical_imgs,
-                    target_width,
-                    ..Default::default()
+            let r = std::fs::create_dir_all(&output_folder_path);
+            
+            let output_file = find_free_filepath(output_folder_path, "result", ".png");
+
+            let result = match r {
+                Ok(()) => {
+                    make_img_of_images(
+                        target_img_path,
+                        input_folder_path,
+                        &output_file,
+                        image_of_images::MakeImgOfImsOpts {
+                            progress_sender: Some(progress_sender),
+                            num_horizontal_imgs,
+                            num_vertical_imgs,
+                            target_width,
+                            ..Default::default()
+                        },
+                    )
                 },
-            );
+                Err(e) => Err(anyhow::anyhow!("{e:?}")),
+            };
 
             let success = match result {
                 Ok(_) => {
@@ -193,7 +202,7 @@ impl ImgOfImgsGui {
             };
 
             event_sender
-                .send(Event::ProcessFinished { success })
+                .send(Event::ProcessFinished { process_result: success.then(|| output_file) })
                 .unwrap();
         });
 
@@ -235,7 +244,7 @@ impl Default for ImgOfImgsGui {
             input_folder_path: Default::default(),
             output_folder_path: "results".into(),
             processing: false,
-            process_success: None,
+            process_result: None,
             event_receiver,
             event_sender,
             progress_text: Default::default(),
@@ -293,8 +302,8 @@ impl App for ImgOfImgsGui {
                 ui.label(txt);
             }
 
-            if let Some(true) = self.process_success {
-                let full_result_path = std::fs::canonicalize(self.output_file());
+            if let Some(path) = &self.process_result {
+                let full_result_path = std::fs::canonicalize(path);
                 if let Some(p) = full_result_path
                     .ok()
                     .and_then(|p| p.to_str().map(|s| s.to_string()))

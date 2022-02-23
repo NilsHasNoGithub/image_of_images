@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use image_of_images::MakeImgOfImsOpts;
+use image_of_images::{MakeImgOfImsOpts, find_free_filepath};
 use structopt::StructOpt;
 
 #[derive(Debug, StructOpt)]
@@ -31,7 +31,9 @@ fn main() -> anyhow::Result<()> {
 
     std::fs::create_dir_all(&opt.output_dir)?;
 
-    image_of_images::make_img_of_images(opt.target_img, opt.input_dir, opt.output_dir, MakeImgOfImsOpts{
+    let output_file = find_free_filepath(opt.output_dir, "result", ".png");
+
+    image_of_images::make_img_of_images(opt.target_img, opt.input_dir, output_file, MakeImgOfImsOpts{
         target_width: opt.target_width,
         num_horizontal_imgs: opt.num_horizontal_imgs,
         num_vertical_imgs: opt.num_vertical_imgs,
