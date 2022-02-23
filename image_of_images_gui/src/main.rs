@@ -140,9 +140,6 @@ impl ImgOfImgsGui {
         }
     }
 
-    fn output_file(&self) -> PathBuf {
-        Path::new(&self.output_folder_path).join("result.png")
-    }
 
     fn start_make_img_of_imgs(&self) -> anyhow::Result<()> {
         
@@ -308,7 +305,7 @@ impl App for ImgOfImgsGui {
                     .ok()
                     .and_then(|p| p.to_str().map(|s| s.to_string()))
                 {
-                    ui.hyperlink_to("Click here to inspect last result", format!("file://{}", p));
+                    ui.hyperlink_to("Click here to inspect last result", p);
                 }
             }
         });
