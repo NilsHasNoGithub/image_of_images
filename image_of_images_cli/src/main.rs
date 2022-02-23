@@ -1,6 +1,6 @@
-use std::path::PathBuf;
+use std::{path::PathBuf, thread};
 
-use image_of_images::{MakeImgOfImsOpts, find_free_filepath};
+use image_of_images::{find_free_filepath, MakeImgOfImsOpts, ProgressReceiver, progress_channel};
 use structopt::StructOpt;
 
 #[derive(Debug, StructOpt)]
@@ -23,6 +23,15 @@ struct Opt {
     no_pop: bool,
 }
 
+fn start_print_progress_thread(progress_receiver: ProgressReceiver) {
+    thread::spawn(move || {
+        let whitespace = (0..50).map(|_|' ').collect::<String>();
+        while let Ok((part, total, desc)) = progress_receiver.recv() {
+            print!("\r{desc} ({part}/{total}){whitespace}")
+        }
+    });
+}
+
 fn main() -> anyhow::Result<()> {
     let _ = dotenv::dotenv();
     env_logger::init();
@@ -33,14 +42,24 @@ fn main() -> anyhow::Result<()> {
 
     let output_file = find_free_filepath(opt.output_dir, "result", ".png");
 
-    image_of_images::make_img_of_images(opt.target_img, opt.input_dir, output_file, MakeImgOfImsOpts{
-        target_width: opt.target_width,
-        num_horizontal_imgs: opt.num_horizontal_imgs,
-        num_vertical_imgs: opt.num_vertical_imgs,
-        max_imgs: opt.max_imgs,
-        no_pop: opt.no_pop,
-        ..Default::default()
-    })?;
-    
+    let (progress_sender, progress_receiver) = progress_channel();
+
+    start_print_progress_thread(progress_receiver);
+
+    image_of_images::make_img_of_images(
+        opt.target_img,
+        opt.input_dir,
+        output_file,
+        MakeImgOfImsOpts {
+            target_width: opt.target_width,
+            num_horizontal_imgs: opt.num_horizontal_imgs,
+            num_vertical_imgs: opt.num_vertical_imgs,
+            max_imgs: opt.max_imgs,
+            no_pop: opt.no_pop,
+            progress_sender: Some(progress_sender),
+            ..Default::default()
+        },
+    )?;
+
     Ok(())
 }

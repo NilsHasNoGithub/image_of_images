@@ -1,16 +1,21 @@
-use std::{collections::HashSet, path::{Path, PathBuf}};
+use std::{
+    collections::{HashMap, HashSet},
+    path::{Path, PathBuf},
+};
 
 use crossbeam::channel::SendError;
 use image::{
     buffer::ConvertBuffer, io::Reader as ImageReader, DynamicImage, GenericImageView, ImageBuffer,
     Rgb, Rgba,
 };
-use indicatif::ProgressIterator;
 use itertools::Itertools;
 use rand::prelude::*;
-use rayon::{iter::{
-    IndexedParallelIterator, IntoParallelIterator, IntoParallelRefIterator, ParallelIterator,
-}, slice::ParallelSliceMut};
+use rayon::{
+    iter::{
+        IndexedParallelIterator, IntoParallelIterator, IntoParallelRefIterator, ParallelIterator,
+    },
+    slice::ParallelSliceMut,
+};
 
 type Image = ImageBuffer<Rgb<f32>, Vec<f32>>;
 pub type ProgressSender = crossbeam::channel::Sender<(usize, usize, &'static str)>;
@@ -102,7 +107,7 @@ fn load_imgs_from_dir(
 
     let n_imgs = all_imgs.len();
 
-    for (i, entry) in all_imgs.into_iter().progress().enumerate() {
+    for (i, entry) in all_imgs.into_iter().enumerate() {
         if let Some(s) = progress_sender {
             let e = s.send((i, n_imgs, "Loading images from disk"));
             handle_progress_send_error(e);
@@ -220,13 +225,22 @@ fn empty_vec_2d<T>(rows: usize, cols: usize) -> Vec<Vec<Option<T>>> {
         .collect()
 }
 
+fn float_err_to_usize(f: f32, max_err: f32) -> usize {
+    assert!(f >= 0.0);
+
+    let f = f / max_err;
+    let f = f * (usize::MAX as f32);
+
+    return f as usize;
+}
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 struct ErrInfo {
     img_idx: usize,
     i_pos: u32,
     j_pos: u32,
-    pos_err_min: f32,
-    err: f32,
+    pos_err_min: usize,
+    err: usize,
 }
 
 impl PartialOrd for ErrInfo {
@@ -251,7 +265,7 @@ fn calc_errors(
 
     let total = n_width * n_height;
 
-    for i in (0..n_height).progress() {
+    for i in (0..n_height) {
         for j in 0..n_width {
             let y_from = i * sub_img_height;
             let x_from = j * sub_img_width;
@@ -284,19 +298,29 @@ fn calc_errors(
             result.extend(
                 errors
                     .into_iter()
-                    .map(|(img_idx, i_pos, j_pos, err)| ErrInfo {
-                        img_idx,
-                        i_pos,
-                        j_pos,
-                        pos_err_min,
-                        err,
-                    }),
+                    .map(|(img_idx, i_pos, j_pos, err)| (img_idx, i_pos, j_pos, pos_err_min, err)),
             );
         }
     }
 
+    let max_err = result
+        .iter()
+        .map(|r| r.4)
+        .max_by(|v1, v2| v1.partial_cmp(v2).unwrap())
+        .unwrap();
+
     result
+        .into_iter()
+        .map(|(img_idx, i_pos, j_pos, pos_err_min, err)| ErrInfo {
+            img_idx,
+            i_pos,
+            j_pos,
+            pos_err_min: float_err_to_usize(pos_err_min, max_err),
+            err: float_err_to_usize(err, max_err),
+        })
+        .collect()
 }
+
 
 fn fill_target_img(
     mut target_img: Image,
@@ -342,18 +366,19 @@ fn fill_target_img(
     );
 
     // reverse sort
-    errors.par_sort_by(|e1, e2| e2.partial_cmp(e1).unwrap());
+    errors.par_sort_by(|e1, e2| e2.err.partial_cmp(&e1.err).unwrap());
+    let n_images = (n_width * n_height) as usize;
+    let mut filled_imgs = 0;
 
-    // use greedy strategy to select best images
 
     let mut black_list = HashSet::new();
-    let mut images_filled = 0;
     while let Some(ErrInfo {
         img_idx,
         i_pos,
         j_pos,
         ..
     }) = errors.pop()
+    
     {
         let i = i_pos as usize;
         let j = j_pos as usize;
@@ -363,19 +388,22 @@ fn fill_target_img(
         }
 
         sub_imgs[i][j] = Some(imgs[img_idx]);
-        images_filled += 1;
+        black_list.insert(img_idx);
+        filled_imgs += 1;
 
-        if images_filled >= n_width * n_height && pop_used_img {
-            break;
+        if let Some(s) = progress_sender {
+            let r = s.send((filled_imgs, n_images, "Selecting images for result"));
+            handle_progress_send_error(r);
         }
 
-        black_list.insert(img_idx);
+        if filled_imgs >= n_images {
+            break
+        }
+
     }
 
-    let sub_imgs: Vec<Vec<_>> = sub_imgs
-        .into_iter()
-        .map(|inner| inner.into_iter().map(|i| i.unwrap()).collect())
-        .collect();
+
+    let sub_imgs: Vec<Vec<_>> = sub_imgs.into_iter().map(|v| v.into_iter().map(Option::unwrap).collect() ).collect();
     insert_sub_imgs(&mut result_img, &sub_imgs, progress_sender);
 
     Ok(result_img)
