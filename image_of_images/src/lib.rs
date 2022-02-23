@@ -8,9 +8,9 @@ use image::{
 use indicatif::ProgressIterator;
 use itertools::Itertools;
 use rand::prelude::*;
-use rayon::iter::{
+use rayon::{iter::{
     IndexedParallelIterator, IntoParallelIterator, IntoParallelRefIterator, ParallelIterator,
-};
+}, slice::ParallelSliceMut};
 
 type Image = ImageBuffer<Rgb<f32>, Vec<f32>>;
 pub type ProgressSender = crossbeam::channel::Sender<(usize, usize, &'static str)>;
@@ -96,6 +96,7 @@ fn load_imgs_from_dir(
     }
 
     if let Some(n) = n_max_imgs {
+        all_imgs.shuffle(&mut rand::thread_rng());
         all_imgs = all_imgs.into_iter().take(n).collect();
     }
 
@@ -340,18 +341,19 @@ fn fill_target_img(
         &progress_sender,
     );
 
-    errors.sort_by(|e1, e2| e1.partial_cmp(e2).unwrap());
+    // reverse sort
+    errors.par_sort_by(|e1, e2| e2.partial_cmp(e1).unwrap());
 
     // use greedy strategy to select best images
 
     let mut black_list = HashSet::new();
     let mut images_filled = 0;
-    for ErrInfo {
+    while let Some(ErrInfo {
         img_idx,
         i_pos,
         j_pos,
         ..
-    } in errors
+    }) = errors.pop()
     {
         let i = i_pos as usize;
         let j = j_pos as usize;
