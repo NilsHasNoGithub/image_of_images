@@ -10,7 +10,7 @@ Download one of the released binaries and execute it:
 | Linux   | [image_of_images_gui](https://github.com/NilsHasNoGithub/image_of_images/releases/download/v0.4.0/image_of_images_gui)  |
 | Windows | [image_of_images_gui.exe](https://github.com/NilsHasNoGithub/image_of_images/releases/download/v0.4.0/image_of_images_gui.exe)  |
 <!-- | Apple (failed) | Build failed -->
-This should show a window which look like the following:
+This should show a window which looks like the following:
 
 <img src="resources/gui.png" width="800"/>
 
