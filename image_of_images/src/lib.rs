@@ -245,10 +245,11 @@ struct ErrInfo {
 
 impl PartialOrd for ErrInfo {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        other
-            .pos_err_min
-            .partial_cmp(&self.pos_err_min)
-            .and_then(|order| Some(order.then(self.err.partial_cmp(&other.err)?)))
+        self.err.partial_cmp(&other.err)
+        // other
+        //     .pos_err_min
+        //     .partial_cmp(&self.pos_err_min)
+        //     .and_then(|order| Some(order.then(self.err.partial_cmp(&other.err)?)))
     }
 }
 
@@ -366,7 +367,7 @@ fn fill_target_img(
     );
 
     // reverse sort
-    errors.par_sort_by(|e1, e2| e2.err.partial_cmp(&e1.err).unwrap());
+    errors.par_sort_by(|e1, e2| e2.partial_cmp(e1).unwrap());
     let n_images = (n_width * n_height) as usize;
     let mut filled_imgs = 0;
 

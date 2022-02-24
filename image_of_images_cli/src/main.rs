@@ -25,9 +25,11 @@ struct Opt {
 
 fn start_print_progress_thread(progress_receiver: ProgressReceiver) {
     thread::spawn(move || {
-        let whitespace = (0..50).map(|_|' ').collect::<String>();
+        let term = console::Term::stdout();
+        let _ = term.write_line("");
         while let Ok((part, total, desc)) = progress_receiver.recv() {
-            print!("\r{desc} ({part}/{total}){whitespace}")
+            let _ = term.clear_last_lines(1);
+            let _ = term.write_line(&format!("{desc} ({part}/{total})"));
         }
     });
 }
