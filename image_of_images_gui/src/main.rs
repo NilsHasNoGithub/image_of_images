@@ -270,7 +270,7 @@ impl App for ImgOfImgsGui {
         // handle events
         self.handle_events();
 
-        request_update_every(frame.clone(), Duration::from_millis(100));
+        
 
         egui::CentralPanel::default().show(&ctx, |ui| {
             // ui.set_style(style);
@@ -318,9 +318,12 @@ impl App for ImgOfImgsGui {
     fn setup(
         &mut self,
         ctx: &egui::Context,
-        _frame: &eframe::epi::Frame,
+        frame: &eframe::epi::Frame,
         storage: Option<&dyn eframe::epi::Storage>,
     ) {
+
+        request_update_every(frame.clone(), Duration::from_millis(100));
+
         if let Some(storage) = storage {
             let defaults = Self::default();
 
