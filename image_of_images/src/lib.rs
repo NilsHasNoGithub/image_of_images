@@ -457,6 +457,12 @@ pub fn make_img_of_images(
     )?;
 
     let mut img_refs: Vec<&Image> = imgs.iter().collect();
+    
+    while img_refs.len() < img_width as usize * img_height as usize {
+        img_refs.extend_from_slice(&img_refs.clone());
+    }
+
+
     let result = fill_target_img(
         target_img,
         &mut img_refs,
